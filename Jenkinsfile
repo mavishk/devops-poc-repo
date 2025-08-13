@@ -3,10 +3,12 @@ pipeline {
     environment {
         DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials')
     }
-    stages {
-        stage('Checkout') {
-            steps {
-                git 'https://github.com/mavishk/devops-poc-repo.git'
+
+stage('Checkout') {
+    steps {
+        git branch: 'main', 
+            credentialsId: 'github-pat', 
+            url: 'https://github.com/mavishk/devops-poc-repo.git'
             }
         }
         stage('Build and Test') {
