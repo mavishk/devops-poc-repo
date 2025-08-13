@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: flask
+  template:
+    metadata:
+      labels:
+        app: flask
+    spec:
+      containers:
+      - name: flask
+        image: yourdockerusername/myflaskapp:latest  # Replace with your Docker Hub repo
+        ports:
+        - containerPort: 5000
+        env:
+        - name: NEW_RELIC_LICENSE_KEY
+          value: "your-new-relic-license-key"  # For runtime config if needed
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flask-service
+spec:
+  selector:
+    app: flask
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 5000
+  type: LoadBalancer
