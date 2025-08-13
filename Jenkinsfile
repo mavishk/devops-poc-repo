@@ -1,8 +1,6 @@
 pipeline {
     agent any
     environment {
-        AWS_ACCESS_KEY_ID = credentials('aws-access-key')
-        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-key')
         DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials')
     }
     stages {
@@ -14,7 +12,7 @@ pipeline {
         stage('Build and Test') {
             steps {
                 sh 'python3 -m venv venv && source venv/bin/activate && pip install flask'
-                sh 'echo "Running tests..."' // Add test commands
+                sh 'echo "Running tests..."'
             }
         }
         stage('Build Docker Image') {
@@ -33,17 +31,23 @@ pipeline {
         }
         stage('Provision EKS') {
             steps {
-                sh 'terraform init && terraform apply -auto-approve'
+                withAWS(region:'us-east-1', credentials:'aws-credentials') {
+                    sh 'terraform init && terraform apply -auto-approve'
+                }
             }
         }
         stage('Deploy to EKS') {
             steps {
-                sh 'kubectl apply -f deployment.yaml' // Or use Helm
+                withAWS(region:'us-east-1', credentials:'aws-credentials') {
+                    sh 'kubectl apply -f deployment.yaml'
+                }
             }
         }
         stage('Upload Artifacts to S3') {
             steps {
-                sh 'aws s3 cp Dockerfile s3://devops-poc-bucket/'
+                withAWS(region:'us-east-1', credentials:'aws-credentials') {
+                    sh 'aws s3 cp Dockerfile s3://devops-poc-bucket/'
+                }
             }
         }
     }
