@@ -1,44 +1,42 @@
 pipeline {
     agent any
-
     environment {
         DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials')
     }
-
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main',
-                    credentialsId: 'github-pat',
+                git branch: 'main', 
+                    credentialsId: 'github-pat', 
                     url: 'https://github.com/mavishk/devops-poc-repo.git'
             }
         }
-
         stage('Build and Test') {
             steps {
-                sh 'python3 -m venv venv && source venv/bin/activate && pip install flask'
-                sh 'echo "Running tests..."'
+                // Use bash -c to allow 'source' command
+                sh '''
+                    python3 -m venv venv
+                    bash -c "source venv/bin/activate && pip install flask"
+                    echo "Running tests..."
+                '''
             }
         }
-
         stage('Build Docker Image') {
             steps {
                 sh 'docker build -t myflaskapp:latest .'
             }
         }
-
         stage('Push to Docker Hub') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', 
-                    passwordVariable: 'DOCKER_PASSWORD', 
-                    usernameVariable: 'DOCKER_USERNAME')]) {
-                    sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
-                    sh 'docker tag myflaskapp:latest $DOCKER_USERNAME/myflaskapp:latest'
-                    sh 'docker push $DOCKER_USERNAME/myflaskapp:latest'
+                withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
+                    sh '''
+                        echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+                        docker tag myflaskapp:latest $DOCKER_USERNAME/myflaskapp:latest
+                        docker push $DOCKER_USERNAME/myflaskapp:latest
+                    '''
                 }
             }
         }
-
         stage('Provision EKS') {
             steps {
                 withAWS(region:'us-east-1', credentials:'aws-credentials') {
@@ -46,7 +44,6 @@ pipeline {
                 }
             }
         }
-
         stage('Deploy to EKS') {
             steps {
                 withAWS(region:'us-east-1', credentials:'aws-credentials') {
@@ -54,7 +51,6 @@ pipeline {
                 }
             }
         }
-
         stage('Upload Artifacts to S3') {
             steps {
                 withAWS(region:'us-east-1', credentials:'aws-credentials') {
